@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Market Brief — iswain.dev</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg-alt: #f7f5f2; --border: #e8e3db;
+    --text: #1c1c1c; --dim: #888; --accent: #1c1c1c;
+    --font: 'Inter', system-ui, sans-serif;
+  }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+
+  .top-bar { background: var(--text); color: rgba(255,255,255,.6); text-align: center; padding: 9px 20px; font-size: 12px; }
+  .top-bar a { color: #fff; font-weight: 600; text-decoration: none; }
+
+  nav { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,.94); border-bottom: 1px solid var(--border); backdrop-filter: blur(10px); padding: 0 36px; height: 52px; display: flex; align-items: center; justify-content: space-between; }
+  .nav-brand { font-size: 14px; font-weight: 700; text-decoration: none; color: var(--text); }
+  .nav-right  { font-size: 13px; color: var(--dim); }
+
+  .page { max-width: 720px; margin: 0 auto; padding: 56px 36px 80px; }
+
+  .page-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--dim); margin-bottom: 10px; }
+  .page-title { font-size: clamp(26px, 4vw, 38px); font-weight: 800; letter-spacing: -.03em; margin-bottom: 12px; }
+  .page-desc  { font-size: 15px; color: var(--dim); max-width: 540px; margin-bottom: 36px; }
+
+  /* ── Suggestions ── */
+  .suggestions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .sug-btn {
+    padding: 6px 14px; border-radius: 6px; border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--dim); font-family: var(--font);
+    font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s;
+  }
+  .sug-btn:hover { border-color: var(--text); color: var(--text); }
+
+  /* ── Input ── */
+  .input-row {
+    display: flex; gap: 10px; margin-bottom: 28px;
+  }
+  #ticker-input {
+    flex: 1; padding: 12px 16px; border: 1.5px solid var(--border);
+    border-radius: 9px; font-family: var(--font); font-size: 15px;
+    font-weight: 600; text-transform: uppercase; outline: none;
+    transition: border-color .15s;
+  }
+  #ticker-input:focus { border-color: var(--text); }
+  #ticker-input::placeholder { text-transform: none; font-weight: 400; color: #bbb; }
+  .go-btn {
+    padding: 12px 24px; border-radius: 9px;
+    background: var(--text); color: #fff;
+    font-family: var(--font); font-size: 14px; font-weight: 700;
+    border: none; cursor: pointer; transition: opacity .15s;
+    white-space: nowrap;
+  }
+  .go-btn:hover { opacity: .85; }
+  .go-btn:disabled { opacity: .45; cursor: default; }
+
+  /* ── Result card ── */
+  .result { display: none; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .result.visible { display: block; }
+
+  .result-top {
+    padding: 22px 26px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  .result-ticker { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+  .result-name   { font-size: 13px; color: var(--dim); margin-top: 1px; }
+  .result-price  { font-size: 18px; font-weight: 700; color: var(--dim); flex-shrink: 0; }
+
+  .ai-brief {
+    padding: 22px 26px; border-bottom: 1px solid var(--border);
+    background: var(--bg-alt);
+  }
+  .ai-label {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--dim); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ai-badge {
+    background: var(--text); color: #fff;
+    font-size: 9px; padding: 2px 7px; border-radius: 4px;
+    font-weight: 700; letter-spacing: .06em;
+  }
+  .ai-text { font-size: 14.5px; line-height: 1.75; color: #222; }
+
+  .headlines { padding: 18px 26px; }
+  .hl-label {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--dim); margin-bottom: 12px;
+  }
+  .hl-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .hl-list li {
+    font-size: 13px; color: #444; padding: 8px 12px;
+    background: var(--bg-alt); border-radius: 7px; line-height: 1.5;
+  }
+  .hl-list li::before { content: '↗ '; color: var(--dim); }
+
+  /* ── Loading ── */
+  .loading { display: none; padding: 48px; text-align: center; }
+  .loading.visible { display: block; }
+  .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--text); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-steps { font-size: 13px; color: var(--dim); }
+
+  .error-msg { padding: 16px 20px; background: #fde8e8; border: 1px solid #fca5a5; border-radius: 9px; color: #b91c1c; font-size: 13.5px; margin-bottom: 20px; display: none; }
+  .error-msg.visible { display: block; }
+
+  .disclaimer { margin-top: 20px; font-size: 12px; color: var(--dim); }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  AI Integration Demo &mdash; fetches live headlines, runs them through Claude Haiku &mdash;
+  <a href="https://iswain.dev" target="_blank">iswain.dev</a>
+</div>
+
+<nav>
+  <a class="nav-brand" href="https://iswain.dev">← iswain.dev</a>
+  <span class="nav-right">AI Market Brief &middot; Demo</span>
+</nav>
+
+<div class="page">
+
+  <div class="page-label">service demo · ai integration</div>
+  <h1 class="page-title">AI Market Brief</h1>
+  <p class="page-desc">Enter any stock or crypto ticker. This demo fetches live news headlines, sends them to Claude AI, and returns a 3-sentence market brief — the same pipeline you'd embed in any existing tool or workflow.</p>
+
+  <div class="suggestions">
+    {% for s in suggestions %}
+    <button class="sug-btn" onclick="prefill('{{ s.ticker }}')">{{ s.ticker }}</button>
+    {% endfor %}
+  </div>
+
+  <div class="input-row">
+    <input type="text" id="ticker-input" placeholder="Enter ticker e.g. NVDA" maxlength="10" autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="go-btn" id="go-btn" onclick="getBrief()">Get Brief</button>
+  </div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-steps" id="loading-steps">Fetching headlines...</div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-top">
+      <div>
+        <div class="result-ticker" id="res-ticker"></div>
+        <div class="result-name" id="res-name"></div>
+      </div>
+      <div class="result-price" id="res-price"></div>
+    </div>
+    <div class="ai-brief">
+      <div class="ai-label">
+        <span>AI Brief</span>
+        <span class="ai-badge">Claude Haiku</span>
+      </div>
+      <div class="ai-text" id="res-brief"></div>
+    </div>
+    <div class="headlines">
+      <div class="hl-label">Source Headlines</div>
+      <ul class="hl-list" id="res-headlines"></ul>
+    </div>
+  </div>
+
+  <p class="disclaimer">Not financial advice &middot; Headlines via Yahoo Finance &middot; Analysis by Claude Haiku (Anthropic)</p>
+
+</div>
+
+<script>
+function prefill(ticker) {
+  document.getElementById('ticker-input').value = ticker;
+  document.getElementById('ticker-input').focus();
+}
+
+var steps = ['Fetching headlines...', 'Processing with Claude AI...', 'Generating market brief...'];
+var stepIdx = 0, stepTimer = null;
+
+function startSteps() {
+  stepIdx = 0;
+  document.getElementById('loading-steps').textContent = steps[0];
+  stepTimer = setInterval(function() {
+    stepIdx = (stepIdx + 1) % steps.length;
+    document.getElementById('loading-steps').textContent = steps[stepIdx];
+  }, 1400);
+}
+
+function stopSteps() {
+  if (stepTimer) { clearInterval(stepTimer); stepTimer = null; }
+}
+
+function getBrief() {
+  var ticker = document.getElementById('ticker-input').value.trim().toUpperCase();
+  if (!ticker) { document.getElementById('ticker-input').focus(); return; }
+
+  var btn = document.getElementById('go-btn');
+  btn.disabled = true;
+
+  document.getElementById('error-msg').classList.remove('visible');
+  document.getElementById('result').classList.remove('visible');
+  document.getElementById('loading').classList.add('visible');
+  startSteps();
+
+  fetch('/api/brief', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ticker: ticker}),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    stopSteps();
+    document.getElementById('loading').classList.remove('visible');
+
+    if (data.error) {
+      var errEl = document.getElementById('error-msg');
+      errEl.textContent = data.error;
+      errEl.classList.add('visible');
+    } else {
+      document.getElementById('res-ticker').textContent = data.ticker;
+      document.getElementById('res-name').textContent = data.name;
+      document.getElementById('res-price').textContent = data.price ? '$' + data.price.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+      document.getElementById('res-brief').textContent = data.brief;
+
+      var hlList = document.getElementById('res-headlines');
+      hlList.innerHTML = '';
+      (data.headlines || []).forEach(function(h) {
+        var li = document.createElement('li');
+        li.textContent = h;
+        hlList.appendChild(li);
+      });
+
+      document.getElementById('result').classList.add('visible');
+    }
+  })
+  .catch(function() {
+    stopSteps();
+    document.getElementById('loading').classList.remove('visible');
+    var errEl = document.getElementById('error-msg');
+    errEl.textContent = 'Could not connect. Please try again.';
+    errEl.classList.add('visible');
+  })
+  .finally(function() {
+    btn.disabled = false;
+  });
+}
+
+document.getElementById('ticker-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') getBrief();
+});
+</script>
+</body>
+</html>
